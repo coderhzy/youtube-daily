@@ -1,6 +1,7 @@
 # Environment
 .env
 venv/
+.venv/
 env/
 *.env.local
 
@@ -31,10 +32,12 @@ test_output.md
 Thumbs.db
 
 # Old files (from previous structure)
-scrapers/__pycache__/
-ai_processor.py.old
-database.py.old
-config.py.old
+scrapers/
+ai_processor.py
+database.py
+config.py
+test_local.py
+tests/
 debug_*.py
 
 # Test files
