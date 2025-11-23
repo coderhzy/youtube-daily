@@ -136,11 +136,27 @@ def main():
             logger.info("\n[Step 5/7] Generating images with AI...")
             try:
                 image_generator = ImageGenerator()
+
+                # Get cover prompt and attractive title from processed data
+                cover_prompt = processed_data.get('cover_prompt')
+                attractive_title = processed_data.get('attractive_title')
+
+                if attractive_title:
+                    logger.info(f"✨ Attractive title: {attractive_title}")
+
                 generated_images = image_generator.generate_images_for_article(
                     article_content=processed_data['content'],
-                    date_str=date_str
+                    date_str=date_str,
+                    cover_prompt=cover_prompt,
+                    attractive_title=attractive_title
                 )
-                logger.info(f"✓ Generated {len(generated_images)} images")
+                logger.info(f"✓ Generated {len(generated_images)} images total")
+
+                # Log cover image if generated
+                cover_images = [img for img in generated_images if img.get('is_cover')]
+                if cover_images:
+                    logger.info(f"  - 1 cover image (YouTube thumbnail)")
+                    logger.info(f"  - {len(generated_images) - 1} content images")
             except Exception as e:
                 logger.error(f"Image generation failed: {e}")
                 logger.info("Continuing without images...")
@@ -174,7 +190,7 @@ def main():
 
         # Step 7: Send email (if enabled and PDF exists)
         if ENABLE_EMAIL_SEND and pdf_path:
-            logger.info("\n[Step 7/7] Sending email with PDF attachment...")
+            logger.info("\n[Step 7/7] Sending email with PDF and images zip...")
             try:
                 email_sender = EmailSender()
                 success = email_sender.send_daily_report(
@@ -183,10 +199,11 @@ def main():
                     article_title=processed_data['title'],
                     article_description=processed_data['description'],
                     num_news=len(all_news),
-                    num_images=len(generated_images)
+                    num_images=len(generated_images),
+                    images_dir='output/images'  # Pass images directory
                 )
                 if success:
-                    logger.info("✓ Email sent successfully")
+                    logger.info("✓ Email sent successfully (PDF + Images ZIP)")
                 else:
                     logger.warning("Email sending failed")
             except Exception as e:

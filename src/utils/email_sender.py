@@ -8,6 +8,8 @@ from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
 from pathlib import Path
 from typing import List
+import zipfile
+import os
 
 from src.config import (
     EMAIL_SMTP_SERVER,
@@ -49,10 +51,11 @@ class EmailSender:
         article_title: str,
         article_description: str,
         num_news: int,
-        num_images: int
+        num_images: int,
+        images_dir: str = None
     ) -> bool:
         """
-        Send daily report email with PDF attachment
+        Send daily report email with PDF and images zip attachment
 
         Args:
             pdf_path: Path to PDF file
@@ -61,6 +64,7 @@ class EmailSender:
             article_description: Article description
             num_news: Number of news items
             num_images: Number of images generated
+            images_dir: Directory containing images (optional)
 
         Returns:
             True if sent successfully, False otherwise
@@ -101,11 +105,33 @@ class EmailSender:
                 self.logger.error(f"PDF file not found: {pdf_path}")
                 return False
 
+            # Create and attach images zip
+            if images_dir:
+                zip_path = self._create_images_zip(images_dir, date_str)
+                if zip_path and Path(zip_path).exists():
+                    with open(zip_path, 'rb') as f:
+                        zip_attachment = MIMEApplication(f.read(), _subtype='zip')
+                        zip_attachment.add_header(
+                            'Content-Disposition',
+                            'attachment',
+                            filename=f'blockchain-images-{date_str}.zip'
+                        )
+                        msg.attach(zip_attachment)
+                    self.logger.info(f"Attached ZIP: blockchain-images-{date_str}.zip ({Path(zip_path).stat().st_size / 1024 / 1024:.2f} MB)")
+                else:
+                    self.logger.warning("Failed to create images zip, continuing without it")
+
             # Send email (support both TLS and SSL)
             if self.smtp_port == 465:
                 # Use SSL for port 465 (QQ Mail, etc.)
-                with smtplib.SMTP_SSL(self.smtp_server, self.smtp_port) as server:
+                import ssl
+                context = ssl.create_default_context()
+
+                with smtplib.SMTP_SSL(self.smtp_server, self.smtp_port, context=context) as server:
                     self.logger.debug("SSL connection established")
+
+                    # Enable debug output
+                    server.set_debuglevel(0)
 
                     # Login
                     server.login(self.username, self.password)
@@ -367,3 +393,48 @@ class EmailSender:
         except Exception as e:
             self.logger.error(f"Failed to send test email: {e}")
             return False
+
+    def _create_images_zip(self, images_dir: str, date_str: str) -> str:
+        """
+        Create a zip file containing all images
+
+        Args:
+            images_dir: Directory containing images
+            date_str: Date string for zip filename
+
+        Returns:
+            Path to created zip file or None if failed
+        """
+        try:
+            images_path = Path(images_dir) / date_str
+            if not images_path.exists():
+                self.logger.warning(f"Images directory not found: {images_path}")
+                return None
+
+            # Create zip file in output directory
+            zip_filename = f'blockchain-images-{date_str}.zip'
+            zip_path = Path('output') / zip_filename
+
+            self.logger.info(f"Creating images zip: {zip_filename}")
+
+            with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                # Add all image files
+                image_count = 0
+                for img_file in sorted(images_path.glob('*.png')):
+                    # Add with relative path
+                    arcname = img_file.name
+                    zipf.write(img_file, arcname)
+                    image_count += 1
+
+                self.logger.info(f"Added {image_count} images to zip")
+
+            if image_count > 0:
+                self.logger.info(f"✓ Images zip created: {zip_path} ({zip_path.stat().st_size / 1024 / 1024:.2f} MB)")
+                return str(zip_path)
+            else:
+                self.logger.warning("No images found to zip")
+                return None
+
+        except Exception as e:
+            self.logger.error(f"Error creating images zip: {e}")
+            return None

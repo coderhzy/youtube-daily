@@ -16,7 +16,8 @@ OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY')
 OPENROUTER_BASE_URL = os.getenv('OPENROUTER_BASE_URL', 'https://openrouter.ai/api/v1')
 OPENROUTER_MODEL = os.getenv('OPENROUTER_MODEL', 'google/gemini-2.0-flash-exp:free')
 
-# Gemini Image Generation Model
+# Gemini Image Generation Model (Nano Banana Pro)
+# google/gemini-3-pro-image-preview - 高级图片生成，支持多语言文字渲染
 GEMINI_IMAGE_MODEL = os.getenv('GEMINI_IMAGE_MODEL', 'google/gemini-3-pro-image-preview')
 
 # Feature Flags
@@ -42,7 +43,7 @@ NEWS_SOURCES = {
         'enabled': True,
         'api_url': 'https://api.jinse.cn/noah/v2/lives',
         'language': 'zh',
-        'limit': 60,  # 抓取60条新闻（日更，24小时内）
+        'limit': 40,  # 生产模式：抓取40条新闻
     },
     'odaily': {
         'enabled': False,  # 禁用（RSSHub不稳定）
@@ -69,7 +70,7 @@ NEWS_SOURCES = {
 # Content Settings
 FETCH_HOURS = 24  # 抓取过去24小时的新闻（日更）
 MIN_CONTENT_LENGTH = 50  # 最小内容长度
-TARGET_ARTICLE_LENGTH = 8000  # 目标文章长度（字符数）约5k-10k字
+TARGET_ARTICLE_LENGTH = 8000  # 生产模式：目标文章长度8000字
 
 # News Categories
 NEWS_CATEGORIES = {

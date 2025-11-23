@@ -25,10 +25,10 @@ class PDFGenerator:
         output_path: str
     ) -> str:
         """
-        Generate PDF report with article content and images
+        Generate PDF report with ONLY images (no text content)
 
         Args:
-            article_data: Dict with title, content, description, tags
+            article_data: Dict with title, content, description, tags (not used, kept for compatibility)
             images: List of image dicts with path, title, description
             output_path: Output PDF file path
 
@@ -36,29 +36,28 @@ class PDFGenerator:
             Path to generated PDF file
         """
         try:
-            self.logger.info(f"Generating PDF with {len(images)} images...")
+            self.logger.info(f"Generating image-only PDF with {len(images)} images...")
 
-            # Create HTML content
-            html_content = self._create_html_content(article_data, images)
+            if not images:
+                self.logger.warning("No images provided, creating empty PDF")
+
+            # Create simple HTML with only images
+            html_content = self._create_images_only_html(images)
 
             # Generate PDF
             output_file = Path(output_path)
             output_file.parent.mkdir(parents=True, exist_ok=True)
 
-            # Configure fonts for Chinese support
-            font_config = FontConfiguration()
-
-            # Create CSS for styling
-            css = self._create_css()
+            # Create minimal CSS for images
+            css = self._create_images_only_css()
 
             # Generate PDF using WeasyPrint
             HTML(string=html_content).write_pdf(
                 output_file,
-                stylesheets=[CSS(string=css, font_config=font_config)],
-                font_config=font_config
+                stylesheets=[CSS(string=css)]
             )
 
-            self.logger.info(f"✓ PDF generated: {output_file}")
+            self.logger.info(f"✓ Image-only PDF generated: {output_file}")
             return str(output_file)
 
         except Exception as e:
@@ -66,6 +65,92 @@ class PDFGenerator:
             import traceback
             self.logger.debug(traceback.format_exc())
             raise
+
+    def _create_images_only_html(self, images: List[Dict[str, Any]]) -> str:
+        """
+        Create HTML with only images, one image per page
+
+        Args:
+            images: List of image dicts with path
+
+        Returns:
+            HTML string
+        """
+        # Sort images: cover first, then content images
+        sorted_images = sorted(images, key=lambda x: (not x.get('is_cover', False), x.get('path', '')))
+
+        # Build HTML with one image per page
+        image_html_parts = []
+        for img in sorted_images:
+            img_path = Path(img['path']).resolve()
+
+            # Each image on its own page
+            image_html_parts.append(f'''
+                <div class="image-page">
+                    <img src="file://{img_path}" alt="Generated Image">
+                </div>
+            ''')
+
+        html = f"""
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Blockchain Daily Images</title>
+</head>
+<body>
+    {''.join(image_html_parts)}
+</body>
+</html>
+"""
+        return html
+
+    def _create_images_only_css(self) -> str:
+        """
+        Create minimal CSS for image-only PDF
+
+        Returns:
+            CSS string
+        """
+        return """
+        @page {
+            size: A4 landscape;
+            margin: 0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        .image-page {
+            width: 100vw;
+            height: 100vh;
+            page-break-after: always;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .image-page:last-child {
+            page-break-after: auto;
+        }
+
+        .image-page img {
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+        }
+        """
 
     def _create_html_content(
         self,

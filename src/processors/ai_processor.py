@@ -42,7 +42,7 @@ class AIProcessor:
             date_str: Date string (YYYY-MM-DD)
 
         Returns:
-            Dict containing title, content, description, tags
+            Dict containing title, content, description, tags, attractive_title, cover_prompt
         """
         if not ENABLE_AI_SUMMARY:
             self.logger.info("AI summary is disabled, using basic formatting")
@@ -78,6 +78,13 @@ class AIProcessor:
             # Parse AI response
             parsed_result = self._parse_ai_response(result, date_str)
 
+            # Generate attractive title and cover image prompt
+            self.logger.info("Generating attractive title and cover image prompt...")
+            title_and_cover = self._generate_attractive_title_and_cover(news_text, parsed_result['content'])
+
+            parsed_result['attractive_title'] = title_and_cover['title']
+            parsed_result['cover_prompt'] = title_and_cover['cover_prompt']
+
             self.logger.info("AI processing completed successfully")
             return parsed_result
 
@@ -111,43 +118,42 @@ class AIProcessor:
 
 请按以下要求处理:
 
-1. **文章长度**: 目标8000-10000字，需要详细展开每条新闻的背景、影响和分析
+1. **文章长度**: 目标8000-10000字（深度分析版本）
 
 2. **文章结构**:
 
    a) **开篇总结** (500-800字):
-      - 用3-5段话总结今日最重要的动态
-      - 提炼核心主题和趋势
-      - 设置阅读期待
+      - 全面总结今日最重要的动态
+      - 提炼核心主题和宏观趋势
+      - 建立各个板块之间的联系
+      - 分析背后的深层原因
 
-   b) **分类深度报道**: 将新闻分为以下板块，每个板块详细展开:
-      - 📊 **市场动态** (价格、交易量、市场情绪、技术分析)
-      - 🏛️ **政策监管** (各国监管动向、合规要求、政策影响)
-      - 💰 **DeFi生态** (协议更新、TVL变化、收益机会、风险分析)
-      - 🎨 **NFT与链游** (新项目、交易数据、市场热点)
-      - 🔧 **技术创新** (协议升级、Layer2进展、新技术落地)
-      - 💼 **投融资** (融资事件、投资机构动向、估值分析)
-      - 🌐 **行业动态** (机构入场、生态发展、行业合作)
+   b) **分类深度分析**: 将新闻分为5-7个主要板块，每个板块进行深度剖析:
+      - 📊 **市场动态** (价格走势、交易量分析、市场情绪、技术分析、链上数据)
+      - 🏛️ **政策监管** (各国监管动向、合规要求、政策影响、行业应对)
+      - 💰 **DeFi生态** (协议更新、TVL变化、收益机会、风险分析、创新模式)
+      - 🎨 **NFT与链游** (新项目、交易数据、市场热点、用户增长、生态发展)
+      - 🔧 **技术创新** (协议升级、Layer2进展、新技术落地、性能优化、安全改进)
+      - 💼 **投融资** (融资事件、投资机构动向、估值分析、赛道趋势)
+      - 🌐 **行业动态** (机构入场、生态发展、行业合作、战略布局)
 
-   c) **深度分析** (1000-1500字):
-      - 今日新闻的关联性分析
-      - 对行业趋势的影响
-      - 潜在机会和风险提示
+   c) **深度总结与展望** (500-800字):
+      - 今日新闻的核心要点梳理
+      - 跨板块的联动分析
+      - 短期趋势预测
+      - 中长期影响评估
+      - 投资者建议（风险提示）
 
 3. **内容深度要求**:
-   - **每条重要新闻**: 用150-300字展开，包括:
-     * 事件背景介绍
-     * 详细数据和事实
-     * 业内观点引用
-     * 潜在影响分析
+   - **每条重要新闻**: 用150-300字深度解读
+   - **每条次要新闻**: 用80-150字概括分析
 
-   - **次要新闻**: 用80-150字概括
-
-   - **添加专业洞察**:
-     * 引用行业数据和指标
-     * 对比历史事件
-     * 分析因果关系
-     * 预测未来走向
+   - **必须添加专业洞察**:
+     * 引用具体的行业数据和指标（TVL、交易量、市值等）
+     * 对比历史类似事件及其后续影响
+     * 深入分析因果关系和传导机制
+     * 基于数据预测未来走向
+     * 评估对不同参与者的影响（散户、机构、项目方）
 
 4. **语言风格**:
    - 专业但易懂，面向对区块链有一定了解的读者
@@ -212,6 +218,99 @@ class AIProcessor:
 
         return list(set(tags))
 
+    def _generate_attractive_title_and_cover(self, news_text: str, article_content: str) -> Dict[str, str]:
+        """
+        Generate attractive title and cover image prompt based on article content
+
+        Args:
+            news_text: Raw news text
+            article_content: Processed article content
+
+        Returns:
+            Dict with 'title' and 'cover_prompt'
+        """
+        try:
+            prompt = f"""基于以下区块链新闻文章，生成一个吸引人的YouTube视频标题和封面图描述。
+
+文章摘要:
+{article_content[:1000]}...
+
+要求:
+
+1. **YouTube视频标题**（10-25个字）:
+   - 抓住今日最核心、最吸引眼球的话题
+   - 使用数字、情感词、悬念等技巧
+   - 适合YouTube算法推荐
+   - 示例: "比特币暴跌20%！巨鲸却在疯狂抄底？"
+   - 示例: "以太坊重大升级！Gas费用降低90%"
+   - 示例: "美国SEC突发新政！加密市场将迎来巨变？"
+
+2. **封面图提示词**（英文，用于Nano Banana Pro图片生成）:
+   - 必须包含吸引人的人物场景
+   - 突出今日最重要的主题
+   - 适合YouTube缩略图（16:9横屏）
+   - 包含清晰的中文标题文字
+   - 视觉冲击力强，让人想点击
+   - 符合Nano Banana Pro的文字渲染优势
+
+请以JSON格式返回:
+{{
+  "title": "吸引人的YouTube标题",
+  "cover_prompt": "Detailed English prompt for cover image generation"
+}}
+
+封面图提示词示例格式:
+"Create a dramatic YouTube thumbnail image for blockchain news.
+Scene: Shocked/excited business analyst looking at large digital screen showing [KEY EVENT],
+dramatic lighting, urgent atmosphere, close-up professional photography style.
+Chinese title text: '[YouTube标题]' in large bold white characters (90pt+) at top,
+highly visible and readable using Nano Banana Pro's superior text rendering.
+Visual elements: Bitcoin/crypto symbols, price charts with dramatic arrows,
+breaking news aesthetic, red/green color accents for market emotions.
+Background: Gradient dark blue to black, cinematic lighting, high contrast.
+Style: YouTube thumbnail optimized, attention-grabbing, professional yet dramatic,
+perfect for video presentation, 16:9 horizontal format.
+Text rendering: Ensure Chinese characters are crystal clear and prominent using
+Nano Banana Pro's industry-leading multilingual text capabilities."
+
+注意: 标题要能引起好奇心和点击欲望，封面图要视觉冲击力强！"""
+
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                temperature=0.8,  # 稍高的温度以获得更有创意的标题
+                max_tokens=2000
+            )
+
+            result = response.choices[0].message.content
+
+            # Parse JSON response
+            import json
+            import re
+
+            # Extract JSON from markdown code blocks if present
+            json_match = re.search(r'```json\s*(.*?)\s*```', result, re.DOTALL)
+            if json_match:
+                result = json_match.group(1)
+
+            parsed = json.loads(result)
+
+            self.logger.info(f"Generated attractive title: {parsed['title']}")
+            return parsed
+
+        except Exception as e:
+            self.logger.error(f"Error generating attractive title and cover: {e}")
+            # Fallback
+            return {
+                'title': '今日区块链行业重大动态',
+                'cover_prompt': 'Professional blockchain news presenter looking at dramatic market charts, urgent atmosphere, Chinese title text visible'
+            }
+
     def _basic_format(self, news_list: List[Dict[str, Any]], date_str: str) -> Dict[str, Any]:
         """Basic formatting without AI"""
         content_parts = [
@@ -239,5 +338,7 @@ class AIProcessor:
             'title': f"区块链每日观察 - {date_str}",
             'content': content,
             'description': f"区块链每日观察 - {date_str},收录{len(news_list)}条行业动态",
-            'tags': ['区块链', '每日观察']
+            'tags': ['区块链', '每日观察'],
+            'attractive_title': f'今日区块链行业动态 - {date_str}',
+            'cover_prompt': 'Professional blockchain news, modern office setting'
         }
