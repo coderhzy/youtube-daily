@@ -5,13 +5,15 @@ Image Generator using OpenRouter Gemini Image API
 from typing import List, Dict, Any
 import base64
 import os
+import time
 from pathlib import Path
 from openai import OpenAI
 
 from src.config import (
     OPENROUTER_API_KEY,
     OPENROUTER_BASE_URL,
-    GEMINI_IMAGE_MODEL
+    GEMINI_IMAGE_MODEL,
+    OPENROUTER_MODEL
 )
 from src.utils.logger import get_logger
 
@@ -29,8 +31,13 @@ class ImageGenerator:
             api_key=OPENROUTER_API_KEY,
             base_url=OPENROUTER_BASE_URL
         )
-        self.model = GEMINI_IMAGE_MODEL
-        self.logger.info(f"Image Generator initialized with model: {self.model}")
+        # 封面使用高级模型（Nano Banana Pro）
+        self.cover_model = GEMINI_IMAGE_MODEL  # google/gemini-3-pro-image-preview
+        # 内容图使用免费/便宜模型（Gemini 2.5 Flash）
+        self.content_model = OPENROUTER_MODEL  # google/gemini-2.5-flash
+        self.logger.info(f"Image Generator initialized")
+        self.logger.info(f"  - Cover model: {self.cover_model}")
+        self.logger.info(f"  - Content model: {self.content_model}")
 
     def generate_cover_image(
         self,
@@ -58,8 +65,8 @@ class ImageGenerator:
             output_path = Path(output_dir) / date_str
             output_path.mkdir(parents=True, exist_ok=True)
 
-            # Generate cover image
-            image_data = self._generate_single_image(cover_prompt)
+            # Generate cover image using premium model (Nano Banana Pro)
+            image_data = self._generate_single_image(cover_prompt, use_cover_model=True)
 
             if image_data:
                 # Save cover image with special naming
@@ -130,7 +137,7 @@ class ImageGenerator:
             self.logger.info(f"Found {len(sections)} major sections")
 
             # Limit sections for production (optimal viewing experience)
-            sections = sections[:20]  # 生产模式：生成20张图片（每2分钟切换，40分钟视频最佳体验）
+            sections = sections[:8]  # 生产模式：生成8张图片（每2分钟切换，约16-20分钟视频）
             self.logger.info(f"Limited to {len(sections)} sections for optimal viewing experience")
 
             # Generate prompts for each section
@@ -147,7 +154,12 @@ class ImageGenerator:
                 try:
                     self.logger.info(f"Generating image {i}/{len(image_prompts)+start_index-1}: {prompt_info['title']}")
 
-                    image_data = self._generate_single_image(prompt_info['prompt'])
+                    # 每次请求前等待10秒，防止API限流
+                    if i > start_index:  # 第一张图片不需要等待
+                        self.logger.info("⏳ Waiting 10 seconds before next request to avoid rate limiting...")
+                        time.sleep(10)
+
+                    image_data = self._generate_single_image(prompt_info['prompt'], use_cover_model=False)
 
                     if image_data:
                         # Save image
@@ -417,19 +429,25 @@ Overall: A professional YouTube presentation image that combines engaging human 
 
         return prompts
 
-    def _generate_single_image(self, prompt: str) -> bytes:
+    def _generate_single_image(self, prompt: str, use_cover_model: bool = False) -> bytes:
         """
-        Generate a single image using Gemini 2.5 Flash Image Preview (Nano Banana)
+        Generate a single image using specified model
 
-        This model offers:
-        - High-fidelity visual synthesis
-        - Context-rich graphics (infographics, diagrams)
-        - Industry-leading text rendering
-        - Real-time information via Search grounding
-        - Support for 2K/4K outputs
+        Args:
+            prompt: Image generation prompt
+            use_cover_model: If True, use premium Nano Banana Pro for cover;
+                           If False, use Gemini 2.5 Flash for content images
+
+        Returns:
+            Image data as bytes, or None if failed
         """
         try:
-            self.logger.info(f"Generating image with prompt: {prompt[:100]}...")
+            # Select model based on image type
+            model = self.cover_model if use_cover_model else self.content_model
+            model_name = "Nano Banana Pro (Premium)" if use_cover_model else "Gemini 2.5 Flash (Free)"
+
+            self.logger.info(f"Generating image using {model_name}...")
+            self.logger.info(f"Prompt: {prompt[:100]}...")
 
             # Use raw requests API because OpenAI SDK doesn't parse images field correctly
             import requests
@@ -442,7 +460,7 @@ Overall: A professional YouTube presentation image that combines engaging human 
             }
 
             data = {
-                "model": self.model,
+                "model": model,
                 "messages": [
                     {
                         "role": "user",

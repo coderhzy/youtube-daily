@@ -37,13 +37,13 @@
 ```
 抓取新闻:     ~5秒
 生成文章:     ~15秒
-生成封面图:   ~20秒
-生成20张图:   ~6-8分钟 (每张约20秒)
+生成封面图:   ~20秒 (使用Nano Banana Pro)
+生成8张图:    ~1.5-2分钟 (每张约10秒间隔 + 生成时间)
 生成PDF:      ~5秒
 创建ZIP:      ~2秒
 发送邮件:     ~10秒
 
-总计: 约7-9分钟
+总计: 约3-4分钟
 ```
 
 ---
@@ -55,8 +55,8 @@
 1. 打开 `hzy1257664828@gmail.com`
 2. 查找主题: **区块链每日观察 - 2025-11-23**
 3. 附件包含：
-   - `blockchain-daily-2025-11-23.pdf` (~3-4MB)
-   - `blockchain-images-2025-11-23.zip` (~5-8MB)
+   - `blockchain-daily-2025-11-23.pdf` (~1-2MB, 9张图片)
+   - `blockchain-images-2025-11-23.zip` (~2-3MB, 9张图片)
 
 ---
 
@@ -75,11 +75,11 @@
    ├── blockchain-images-2025-11-23.zip
    └── images/
        └── 2025-11-23/
-           ├── 00_COVER_xxx.png
-           ├── 01_xxx.png
+           ├── 00_COVER_xxx.png (封面，Nano Banana Pro生成)
+           ├── 01_xxx.png (内容图，Gemini 2.5 Flash生成)
            ├── 02_xxx.png
            ...
-           └── 20_xxx.png
+           └── 08_xxx.png (共9张图片：1封面 + 8内容)
    ```
 
 ---
@@ -188,9 +188,9 @@ https://openrouter.ai/activity
 ✅ GitHub Actions显示绿色✅
 ✅ 收到邮件，包含PDF和ZIP
 ✅ Artifacts包含完整文件
-✅ 日志显示生成了21张图片
-✅ PDF大小约3-4MB
-✅ ZIP大小约5-8MB
+✅ 日志显示生成了9张图片（1封面 + 8内容）
+✅ PDF大小约1-2MB
+✅ ZIP大小约2-3MB
 
 ---
 
@@ -198,11 +198,16 @@ https://openrouter.ai/activity
 
 测试成功后：
 
-1. ✅ 解压ZIP查看21张图片质量
-2. ✅ 打开PDF确认图片显示正常
-3. ✅ 准备用于YouTube视频制作
+1. ✅ 解压ZIP查看9张图片质量（1封面 + 8内容）
+2. ✅ 打开PDF确认图片显示正常（无底部空白）
+3. ✅ 准备用于YouTube视频制作（约16-20分钟视频）
 4. ✅ 如果满意，启用定时任务
 5. ✅ 每天早上5点自动收到新报告
+
+**图片生成策略**：
+- 封面图（1张）：使用 Nano Banana Pro（高质量）
+- 内容图（8张）：使用 Gemini 2.5 Flash（免费/低成本）
+- 请求间隔：每10秒一次，避免API限流
 
 ---
 

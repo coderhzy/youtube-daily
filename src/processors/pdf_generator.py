@@ -130,13 +130,14 @@ class PDFGenerator:
         }
 
         .image-page {
-            width: 100vw;
-            height: 100vh;
+            width: 100%;
+            height: 100%;
             page-break-after: always;
             display: flex;
             align-items: center;
             justify-content: center;
             overflow: hidden;
+            position: relative;
         }
 
         .image-page:last-child {
@@ -144,11 +145,10 @@ class PDFGenerator:
         }
 
         .image-page img {
-            max-width: 100%;
-            max-height: 100%;
-            width: auto;
-            height: auto;
-            object-fit: contain;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
         }
         """
 
