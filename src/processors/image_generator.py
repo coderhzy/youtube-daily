@@ -129,61 +129,8 @@ class ImageGenerator:
                 if cover_image:
                     generated_images.append(cover_image)
 
-            # Generate content images
-            self.logger.info("Analyzing article to generate content image prompts...")
-
-            # Parse article into sections
-            sections = self._parse_article_sections(article_content)
-            self.logger.info(f"Found {len(sections)} major sections")
-
-            # Limit sections for production (optimal viewing experience)
-            sections = sections[:8]  # 生产模式：生成8张图片（每2分钟切换，约16-20分钟视频）
-            self.logger.info(f"Limited to {len(sections)} sections for optimal viewing experience")
-
-            # Generate prompts for each section
-            image_prompts = self._generate_image_prompts(sections, date_str)
-            self.logger.info(f"Generated {len(image_prompts)} image prompts")
-
-            # Create output directory
-            output_path = Path(output_dir) / date_str
-            output_path.mkdir(parents=True, exist_ok=True)
-
-            # Generate content images (start from 01, 02, etc.)
-            start_index = 1
-            for i, prompt_info in enumerate(image_prompts, start_index):
-                try:
-                    self.logger.info(f"Generating image {i}/{len(image_prompts)+start_index-1}: {prompt_info['title']}")
-
-                    # 每次请求前等待10秒，防止API限流
-                    if i > start_index:  # 第一张图片不需要等待
-                        self.logger.info("⏳ Waiting 10 seconds before next request to avoid rate limiting...")
-                        time.sleep(10)
-
-                    image_data = self._generate_single_image(prompt_info['prompt'], use_cover_model=False)
-
-                    if image_data:
-                        # Save image
-                        image_filename = f"{i:02d}_{self._sanitize_filename(prompt_info['title'])}.png"
-                        image_path = output_path / image_filename
-
-                        with open(image_path, 'wb') as f:
-                            f.write(image_data)
-
-                        generated_images.append({
-                            'path': str(image_path),
-                            'title': prompt_info['title'],
-                            'description': prompt_info['description'],
-                            'section': prompt_info['section'],
-                            'is_cover': False
-                        })
-
-                        self.logger.info(f"✓ Image saved: {image_path}")
-                    else:
-                        self.logger.warning(f"Failed to generate image for: {prompt_info['title']}")
-
-                except Exception as e:
-                    self.logger.error(f"Error generating image {i}: {e}")
-                    continue
+            # 只生成封面图，不生成内容图
+            self.logger.info("✅ Cover-only mode: Skipping content images generation")
 
             self.logger.info(f"Successfully generated {len(generated_images)} images total (including cover)")
             return generated_images

@@ -177,14 +177,34 @@ class AIProcessor:
         description_lines = []
         content_start = 0
 
+        # 过滤掉AI的礼貌性回复开头
+        skip_phrases = [
+            '好的', '这是', '根据', '您提供', '整理而成',
+            '以下是', '为您', '我将', '让我', '---', '**日期：'
+        ]
+
         for i, line in enumerate(lines):
             if line.startswith('##'):
                 content_start = i
                 break
-            if line.strip() and not line.startswith('#'):
+
+            # 跳过空行和以#开头的行
+            if not line.strip() or line.startswith('#'):
+                continue
+
+            # 跳过包含礼貌性回复的行
+            if any(phrase in line for phrase in skip_phrases):
+                continue
+
+            # 只添加有实际内容的行
+            if line.strip():
                 description_lines.append(line.strip())
 
-        description = ' '.join(description_lines[:3]) if description_lines else f"区块链每日观察 - {date_str}"
+        # 如果没有找到合适的描述，使用默认描述
+        if description_lines:
+            description = ' '.join(description_lines[:2])  # 只取前2行，避免太长
+        else:
+            description = f"区块链每日观察 - {date_str}"
 
         content = '\n'.join(lines[content_start:]) if content_start > 0 else ai_response
 
@@ -193,7 +213,7 @@ class AIProcessor:
         return {
             'title': f"区块链每日观察 - {date_str}",
             'content': content,
-            'description': description[:200],
+            'description': description[:200],  # 限制200字符
             'tags': tags
         }
 
