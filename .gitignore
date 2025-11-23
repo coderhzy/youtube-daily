@@ -1,0 +1,43 @@
+# Environment
+.env
+venv/
+env/
+*.env.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Logs
+logs/
+*.log
+
+# Output
+output/
+test_output.md
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Old files (from previous structure)
+scrapers/__pycache__/
+ai_processor.py.old
+database.py.old
+config.py.old
+debug_*.py
+
+# Test files
+.pytest_cache/
+.coverage
+htmlcov/

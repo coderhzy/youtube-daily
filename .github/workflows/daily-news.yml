@@ -1,0 +1,55 @@
+name: Blockchain Daily News Bot
+
+on:
+  schedule:
+    # 每天北京时间早上 5:00 运行 (UTC 21:00 前一天)
+    - cron: '0 21 * * *'
+
+  workflow_dispatch:
+    # 允许手动触发,方便测试
+
+permissions:
+  contents: read
+
+jobs:
+  fetch-and-publish:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run Daily News Bot
+      env:
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        OPENROUTER_MODEL: ${{ secrets.OPENROUTER_MODEL }}
+        ENABLE_AI_SUMMARY: 'true'
+      run: |
+        python main.py
+
+    - name: Upload logs
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: bot-logs
+        path: blockchain_daily.log
+        retention-days: 7
+
+    - name: Notify on failure
+      if: failure()
+      run: |
+        echo "Daily news bot failed! Check the logs for details."
+        echo "Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
