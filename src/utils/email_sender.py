@@ -101,19 +101,33 @@ class EmailSender:
                 self.logger.error(f"PDF file not found: {pdf_path}")
                 return False
 
-            # Send email
-            with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
-                # Enable TLS
-                server.starttls()
-                self.logger.debug("TLS enabled")
+            # Send email (support both TLS and SSL)
+            if self.smtp_port == 465:
+                # Use SSL for port 465 (QQ Mail, etc.)
+                with smtplib.SMTP_SSL(self.smtp_server, self.smtp_port) as server:
+                    self.logger.debug("SSL connection established")
 
-                # Login
-                server.login(self.username, self.password)
-                self.logger.debug("Logged in successfully")
+                    # Login
+                    server.login(self.username, self.password)
+                    self.logger.debug("Logged in successfully")
 
-                # Send
-                server.send_message(msg)
-                self.logger.info(f"✓ Email sent successfully to: {', '.join(self.to_emails)}")
+                    # Send
+                    server.send_message(msg)
+                    self.logger.info(f"✓ Email sent successfully to: {', '.join(self.to_emails)}")
+            else:
+                # Use STARTTLS for port 587 (Gmail, etc.)
+                with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
+                    # Enable TLS
+                    server.starttls()
+                    self.logger.debug("TLS enabled")
+
+                    # Login
+                    server.login(self.username, self.password)
+                    self.logger.debug("Logged in successfully")
+
+                    # Send
+                    server.send_message(msg)
+                    self.logger.info(f"✓ Email sent successfully to: {', '.join(self.to_emails)}")
 
             return True
 
@@ -337,10 +351,15 @@ class EmailSender:
 
             msg.attach(MIMEText(body, 'html', 'utf-8'))
 
-            with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
-                server.starttls()
-                server.login(self.username, self.password)
-                server.send_message(msg)
+            if self.smtp_port == 465:
+                with smtplib.SMTP_SSL(self.smtp_server, self.smtp_port) as server:
+                    server.login(self.username, self.password)
+                    server.send_message(msg)
+            else:
+                with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
+                    server.starttls()
+                    server.login(self.username, self.password)
+                    server.send_message(msg)
 
             self.logger.info("✓ Test email sent successfully")
             return True
