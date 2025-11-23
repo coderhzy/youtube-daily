@@ -1,10 +1,10 @@
 name: 区块链每日观察 - 自动更新
 
 on:
-  schedule:
-    # 每天北京时间早上5点运行 (UTC时间21:00前一天)
-    - cron: '0 21 * * *'
-  workflow_dispatch:  # 允许手动触发
+  workflow_dispatch:  # 仅允许手动触发（测试阶段）
+  # schedule:
+  #   # 每天北京时间早上5点运行 (UTC时间21:00前一天)
+  #   - cron: '0 21 * * *'
 
 jobs:
   daily-update:
