@@ -11,7 +11,10 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from src.config import TIMEZONE, ENABLE_AI_SUMMARY, NEWS_SOURCES, FETCH_HOURS
+from src.config import (
+    TIMEZONE, ENABLE_AI_SUMMARY, NEWS_SOURCES, FETCH_HOURS,
+    ENABLE_IMAGE_GENERATION, ENABLE_PDF_GENERATION, ENABLE_EMAIL_SEND
+)
 from src.scrapers import (
     JinSeScraper,
     OdailyScraper,
@@ -20,8 +23,11 @@ from src.scrapers import (
     TheBlockScraper
 )
 from src.processors import AIProcessor, ContentFilter
+from src.processors.image_generator import ImageGenerator
+from src.processors.pdf_generator import PDFGenerator
 from src.database import SupabaseClient
 from src.utils.logger import setup_logger
+from src.utils.email_sender import EmailSender
 import pytz
 
 # Setup logger
@@ -124,8 +130,78 @@ def main():
 
         logger.info(f"Backup saved to: {output_file}")
 
+        # Step 5: Generate images (if enabled)
+        generated_images = []
+        if ENABLE_IMAGE_GENERATION:
+            logger.info("\n[Step 5/7] Generating images with AI...")
+            try:
+                image_generator = ImageGenerator()
+                generated_images = image_generator.generate_images_for_article(
+                    article_content=processed_data['content'],
+                    date_str=date_str
+                )
+                logger.info(f"✓ Generated {len(generated_images)} images")
+            except Exception as e:
+                logger.error(f"Image generation failed: {e}")
+                logger.info("Continuing without images...")
+        else:
+            logger.info("\n[Step 5/7] Image generation disabled (skipping)")
+
+        # Step 6: Generate PDF (if enabled)
+        pdf_path = None
+        if ENABLE_PDF_GENERATION:
+            logger.info("\n[Step 6/7] Generating PDF report...")
+            try:
+                pdf_generator = PDFGenerator()
+                pdf_filename = f"blockchain-daily-{date_str}.pdf"
+                pdf_path = pdf_generator.generate_pdf(
+                    article_data={
+                        'title': processed_data['title'],
+                        'content': processed_data['content'],
+                        'description': processed_data['description'],
+                        'tags': processed_data['tags'],
+                        'date': date_str
+                    },
+                    images=generated_images,
+                    output_path=str(output_dir / pdf_filename)
+                )
+                logger.info(f"✓ PDF generated: {pdf_path}")
+            except Exception as e:
+                logger.error(f"PDF generation failed: {e}")
+                logger.info("Continuing without PDF...")
+        else:
+            logger.info("\n[Step 6/7] PDF generation disabled (skipping)")
+
+        # Step 7: Send email (if enabled and PDF exists)
+        if ENABLE_EMAIL_SEND and pdf_path:
+            logger.info("\n[Step 7/7] Sending email with PDF attachment...")
+            try:
+                email_sender = EmailSender()
+                success = email_sender.send_daily_report(
+                    pdf_path=pdf_path,
+                    date_str=date_str,
+                    article_title=processed_data['title'],
+                    article_description=processed_data['description'],
+                    num_news=len(all_news),
+                    num_images=len(generated_images)
+                )
+                if success:
+                    logger.info("✓ Email sent successfully")
+                else:
+                    logger.warning("Email sending failed")
+            except Exception as e:
+                logger.error(f"Email sending failed: {e}")
+                logger.info("Report generated but email not sent")
+        else:
+            logger.info("\n[Step 7/7] Email sending disabled or PDF not available (skipping)")
+
         logger.info("\n" + "=" * 80)
         logger.info("Blockchain Daily News Bot - Completed Successfully!")
+        logger.info("=" * 80)
+        logger.info(f"  News items: {len(all_news)}")
+        logger.info(f"  Images generated: {len(generated_images)}")
+        if pdf_path:
+            logger.info(f"  PDF report: {pdf_path}")
         logger.info("=" * 80)
 
     except KeyboardInterrupt:

@@ -16,8 +16,22 @@ OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY')
 OPENROUTER_BASE_URL = os.getenv('OPENROUTER_BASE_URL', 'https://openrouter.ai/api/v1')
 OPENROUTER_MODEL = os.getenv('OPENROUTER_MODEL', 'google/gemini-2.0-flash-exp:free')
 
+# Gemini Image Generation Model
+GEMINI_IMAGE_MODEL = os.getenv('GEMINI_IMAGE_MODEL', 'google/gemini-3-pro-image-preview')
+
 # Feature Flags
 ENABLE_AI_SUMMARY = os.getenv('ENABLE_AI_SUMMARY', 'true').lower() == 'true'
+ENABLE_IMAGE_GENERATION = os.getenv('ENABLE_IMAGE_GENERATION', 'true').lower() == 'true'
+ENABLE_PDF_GENERATION = os.getenv('ENABLE_PDF_GENERATION', 'true').lower() == 'true'
+ENABLE_EMAIL_SEND = os.getenv('ENABLE_EMAIL_SEND', 'true').lower() == 'true'
+
+# Email Configuration
+EMAIL_SMTP_SERVER = os.getenv('EMAIL_SMTP_SERVER', 'smtp.gmail.com')
+EMAIL_SMTP_PORT = int(os.getenv('EMAIL_SMTP_PORT', '587'))
+EMAIL_USERNAME = os.getenv('EMAIL_USERNAME')
+EMAIL_PASSWORD = os.getenv('EMAIL_PASSWORD')
+EMAIL_FROM = os.getenv('EMAIL_FROM', EMAIL_USERNAME)
+EMAIL_TO = os.getenv('EMAIL_TO')  # 可以用逗号分隔多个邮箱
 
 # Timezone Settings
 TIMEZONE = 'Asia/Shanghai'
