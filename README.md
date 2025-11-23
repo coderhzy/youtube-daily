@@ -1,5 +1,7 @@
 # 区块链每日观察 - 自动化新闻系统
 
+[![Daily News Bot](https://github.com/YOUR_USERNAME/blockchain-daily-observer/actions/workflows/daily-news.yml/badge.svg)](https://github.com/YOUR_USERNAME/blockchain-daily-observer/actions/workflows/daily-news.yml)
+
 🤖 自动抓取区块链行业新闻，使用 AI 生成深度分析文章（5k-10k字），并自动更新到 Supabase 数据库。
 
 ## ✨ 特性
@@ -90,6 +92,9 @@ python main.py
 
 ## 📖 文档
 
+- [GitHub Actions 部署](docs/GITHUB_ACTIONS_SETUP.md) - **部署到 GitHub 的完整指南** ⭐
+- [Supabase 设置](docs/SUPABASE_SETUP.sql) - 数据库配置 SQL 脚本
+- [优化配置](docs/OPTIMIZATION.md) - 配置优化说明
 - [快速开始](docs/QUICK_START.md) - 30秒快速部署指南
 - [详细部署](docs/SETUP.md) - 完整的部署和配置说明
 - [项目总览](docs/PROJECT_SUMMARY.md) - 系统架构和设计

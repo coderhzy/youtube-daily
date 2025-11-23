@@ -45,8 +45,9 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: bot-logs
-        path: blockchain_daily.log
+        path: logs/*.log
         retention-days: 7
+        if-no-files-found: warn
 
     - name: Notify on failure
       if: failure()
