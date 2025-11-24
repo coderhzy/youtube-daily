@@ -23,6 +23,19 @@ class SupabaseClient:
         self.tz = pytz.timezone(TIMEZONE)
         self.logger.info("Supabase client initialized successfully")
 
+    def _clean_content(self, content: str) -> str:
+        """Clean content to avoid JSON serialization issues"""
+        if not content:
+            return ""
+
+        # Remove null bytes and other problematic characters
+        content = content.replace('\x00', '')
+
+        # Ensure valid UTF-8
+        content = content.encode('utf-8', errors='ignore').decode('utf-8')
+
+        return content.strip()
+
     def create_daily_post(
         self,
         title: str,
@@ -49,13 +62,21 @@ class SupabaseClient:
             date_str = date.strftime('%Y-%m-%d')
             slug = f"blockchain-daily-{date_str}"
 
+            # Clean content to avoid JSON issues
+            cleaned_content = self._clean_content(content)
+            cleaned_description = self._clean_content(description or f"区块链每日观察 - {date_str}")
+            cleaned_title = self._clean_content(title)
+
+            # Log cleaned content length
+            self.logger.info(f"Original content length: {len(content)}, Cleaned: {len(cleaned_content)}")
+
             # Prepare data
             post_data = {
                 'slug': slug,
-                'title': title,
+                'title': cleaned_title,
                 'date': date_str,
-                'content': content,
-                'description': description or f"区块链每日观察 - {date_str}",
+                'content': cleaned_content,
+                'description': cleaned_description,
                 'tags': tags or ['区块链', '每日观察']
             }
 
@@ -77,6 +98,7 @@ class SupabaseClient:
 
         except Exception as e:
             self.logger.error(f"Error creating/updating post: {e}")
+            self.logger.error(f"Post data keys: {list(post_data.keys()) if 'post_data' in locals() else 'N/A'}")
             raise
 
     def get_post_by_slug(self, slug: str) -> Optional[Dict[str, Any]]:
@@ -85,7 +107,9 @@ class SupabaseClient:
             result = self.client.table('posts').select('*').eq('slug', slug).execute()
             return result.data[0] if result.data else None
         except Exception as e:
-            self.logger.error(f"Error fetching post by slug '{slug}': {e}")
+            # Don't treat "not found" as an error
+            if 'PGRST' not in str(e):
+                self.logger.warning(f"Error checking post by slug '{slug}': {e}")
             return None
 
     def get_post_by_date(self, date: datetime) -> Optional[Dict[str, Any]]:
