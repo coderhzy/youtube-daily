@@ -80,21 +80,42 @@ class SupabaseClient:
                 'tags': tags or ['区块链', '每日观察']
             }
 
-            # Check if exists
-            existing = self.get_post_by_slug(slug)
+            # Use upsert instead of checking existence first
+            # This avoids the "get_post_by_slug" query that might be causing issues
+            self.logger.info(f"Upserting post with slug '{slug}'...")
 
-            if existing:
-                self.logger.info(f"Post with slug '{slug}' already exists, updating...")
-                result = self.client.table('posts').update(post_data).eq('slug', slug).execute()
-            else:
-                self.logger.info(f"Creating new post with slug '{slug}'...")
-                result = self.client.table('posts').insert(post_data).execute()
+            try:
+                # Try upsert (insert or update if exists)
+                result = self.client.table('posts').upsert(
+                    post_data,
+                    on_conflict='slug'  # Use slug as conflict resolution key
+                ).execute()
 
-            if result.data:
-                self.logger.info(f"Successfully saved post: {slug}")
-                return result.data[0]
-            else:
-                raise Exception("No data returned from Supabase")
+                if result.data:
+                    self.logger.info(f"Successfully saved post: {slug}")
+                    return result.data[0]
+                else:
+                    raise Exception("No data returned from Supabase")
+
+            except Exception as upsert_error:
+                # If upsert fails, fall back to manual check
+                self.logger.warning(f"Upsert failed: {upsert_error}, trying manual insert/update...")
+
+                # Check if exists
+                existing = self.get_post_by_slug(slug)
+
+                if existing:
+                    self.logger.info(f"Post with slug '{slug}' already exists, updating...")
+                    result = self.client.table('posts').update(post_data).eq('slug', slug).execute()
+                else:
+                    self.logger.info(f"Creating new post with slug '{slug}'...")
+                    result = self.client.table('posts').insert(post_data).execute()
+
+                if result.data:
+                    self.logger.info(f"Successfully saved post: {slug}")
+                    return result.data[0]
+                else:
+                    raise Exception("No data returned from Supabase")
 
         except Exception as e:
             self.logger.error(f"Error creating/updating post: {e}")
