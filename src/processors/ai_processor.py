@@ -207,6 +207,33 @@ class AIProcessor:
 
         content = '\n'.join(lines[content_start:]) if content_start > 0 else ai_response
 
+        # 强制插入互动提示（如果AI没有生成）
+        cta_text = "如果你觉得内容有帮助，欢迎点赞、订阅，开启小铃铛，不错过每天的行业动态"
+
+        # 检查内容中是否包含互动提示
+        if "点赞" not in content or "订阅" not in content:
+            self.logger.info("AI未生成互动提示，强制插入...")
+
+            # 在第一个二级标题前插入互动提示
+            lines_list = content.split('\n')
+            insert_index = 0
+
+            for i, line in enumerate(lines_list):
+                if line.startswith('## '):
+                    insert_index = i
+                    break
+
+            if insert_index > 0:
+                # 在第一个板块前插入
+                lines_list.insert(insert_index, f"\n{cta_text}\n")
+                content = '\n'.join(lines_list)
+                self.logger.info("互动提示已插入到第一个板块前")
+            else:
+                # 如果没有找到板块标题，插入到开头后
+                lines_list.insert(min(10, len(lines_list)), f"\n{cta_text}\n")
+                content = '\n'.join(lines_list)
+                self.logger.info("互动提示已插入到开头位置")
+
         tags = self._extract_tags(content)
 
         return {
