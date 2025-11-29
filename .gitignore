@@ -44,3 +44,6 @@ debug_*.py
 .pytest_cache/
 .coverage
 htmlcov/
+
+# 忽略缓存文件
+cache/

@@ -15,3 +15,9 @@ markdown>=3.0
 pillow>=10.0
 
 # Email (built-in smtplib, no extra deps needed)
+
+# Video generation (optional)
+moviepy>=1.0.3
+fish-audio-sdk>=1.0.0
+httpx>=0.25.0
+tqdm>=4.65.0

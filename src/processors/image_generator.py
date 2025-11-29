@@ -27,9 +27,17 @@ class ImageGenerator:
         if not OPENROUTER_API_KEY:
             raise ValueError("OPENROUTER_API_KEY must be set in environment variables")
 
+        # 创建不带代理的 httpx client
+        import httpx
+        http_client = httpx.Client(
+            base_url=OPENROUTER_BASE_URL,
+            timeout=120.0
+        )
+
         self.client = OpenAI(
             api_key=OPENROUTER_API_KEY,
-            base_url=OPENROUTER_BASE_URL
+            base_url=OPENROUTER_BASE_URL,
+            http_client=http_client
         )
         # 封面使用高级模型（Nano Banana Pro）
         self.cover_model = GEMINI_IMAGE_MODEL  # google/gemini-3-pro-image-preview

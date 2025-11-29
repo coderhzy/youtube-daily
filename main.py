@@ -13,7 +13,8 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from src.config import (
     TIMEZONE, ENABLE_AI_SUMMARY, NEWS_SOURCES, FETCH_HOURS,
-    ENABLE_IMAGE_GENERATION, ENABLE_PDF_GENERATION, ENABLE_EMAIL_SEND
+    ENABLE_IMAGE_GENERATION, ENABLE_PDF_GENERATION, ENABLE_EMAIL_SEND,
+    ENABLE_VIDEO_GENERATION
 )
 from src.scrapers import (
     JinSeScraper,
@@ -133,7 +134,7 @@ def main():
         # Step 5: Generate images (if enabled)
         generated_images = []
         if ENABLE_IMAGE_GENERATION:
-            logger.info("\n[Step 5/7] Generating images with AI...")
+            logger.info("\n[Step 5/8] Generating images with AI...")
             try:
                 image_generator = ImageGenerator()
 
@@ -161,12 +162,12 @@ def main():
                 logger.error(f"Image generation failed: {e}")
                 logger.info("Continuing without images...")
         else:
-            logger.info("\n[Step 5/7] Image generation disabled (skipping)")
+            logger.info("\n[Step 5/8] Image generation disabled (skipping)")
 
         # Step 6: Generate PDF (if enabled)
         pdf_path = None
         if ENABLE_PDF_GENERATION:
-            logger.info("\n[Step 6/7] Generating PDF report...")
+            logger.info("\n[Step 6/8] Generating PDF report...")
             try:
                 pdf_generator = PDFGenerator()
                 pdf_filename = f"blockchain-daily-{date_str}.pdf"
@@ -186,11 +187,11 @@ def main():
                 logger.error(f"PDF generation failed: {e}")
                 logger.info("Continuing without PDF...")
         else:
-            logger.info("\n[Step 6/7] PDF generation disabled (skipping)")
+            logger.info("\n[Step 6/8] PDF generation disabled (skipping)")
 
         # Step 7: Send email (if enabled and PDF exists)
         if ENABLE_EMAIL_SEND and pdf_path:
-            logger.info("\n[Step 7/7] Sending email with PDF and images zip...")
+            logger.info("\n[Step 7/8] Sending email with PDF and images zip...")
             try:
                 email_sender = EmailSender()
                 success = email_sender.send_daily_report(
@@ -210,7 +211,41 @@ def main():
                 logger.error(f"Email sending failed: {e}")
                 logger.info("Report generated but email not sent")
         else:
-            logger.info("\n[Step 7/7] Email sending disabled or PDF not available (skipping)")
+            logger.info("\n[Step 7/8] Email sending disabled or PDF not available (skipping)")
+
+        # Step 8: Generate video (if enabled)
+        video_result = None
+        if ENABLE_VIDEO_GENERATION:
+            logger.info("\n[Step 8/8] Generating video with TTS and stock footage...")
+            try:
+                from src.video import VideoGenerator
+                video_generator = VideoGenerator()
+
+                # 找封面图
+                cover_image = None
+                cover_images = [img for img in generated_images if img.get('is_cover')]
+                if cover_images:
+                    cover_image = cover_images[0].get('path')
+
+                video_result = video_generator.generate_video(
+                    script=processed_data['content'],
+                    date_str=date_str,
+                    title=processed_data.get('attractive_title', processed_data['title']),
+                    cover_image=cover_image
+                )
+
+                if video_result.get('success'):
+                    logger.info(f"✓ Video generated: {video_result['video_path']}")
+                    logger.info(f"  Duration: {video_result['duration']:.1f}s")
+                    logger.info(f"  Size: {video_result['file_size_mb']:.1f}MB")
+                else:
+                    logger.warning(f"Video generation failed: {video_result.get('error', 'Unknown error')}")
+
+            except Exception as e:
+                logger.error(f"Video generation failed: {e}")
+                logger.info("Continuing without video...")
+        else:
+            logger.info("\n[Step 8/8] Video generation disabled (skipping)")
 
         logger.info("\n" + "=" * 80)
         logger.info("Blockchain Daily News Bot - Completed Successfully!")
@@ -219,6 +254,8 @@ def main():
         logger.info(f"  Images generated: {len(generated_images)}")
         if pdf_path:
             logger.info(f"  PDF report: {pdf_path}")
+        if video_result and video_result.get('success'):
+            logger.info(f"  Video: {video_result['video_path']}")
         logger.info("=" * 80)
 
     except KeyboardInterrupt:
